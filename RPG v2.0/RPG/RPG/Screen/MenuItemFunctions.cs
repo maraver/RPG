@@ -15,9 +15,9 @@ namespace RPG.Screen {
 
     public class MenuItemFunctionPlay : MenuItemFunction {
         public override void run(ScreenManager sm) {
-            Screen game = sm.getScreen("Game");
-            Screen pause = sm.getScreen("Pause");
-            Screen mainmenu = sm.getScreen("Main Menu");
+            Screen game = sm.getScreen(ScreenId.Game);
+            Screen pause = sm.getScreen(ScreenId.Pause);
+            Screen mainmenu = sm.getScreen(ScreenId.MainMenu);
             mainmenu.DoDraw = mainmenu.DoUpdate = false;
             game.DoDraw = game.DoUpdate = true;
             pause.DoUpdate = true;
@@ -27,8 +27,8 @@ namespace RPG.Screen {
 
     public class MenuItemFunctionClosePause : MenuItemFunction {
         public override void run(ScreenManager sm) {
-            PauseScreen pause = (PauseScreen) sm.getScreen("Pause");
-            Screen game = sm.getScreen("Game");
+            PauseScreen pause = (PauseScreen) sm.getScreen(ScreenId.Pause);
+            Screen game = sm.getScreen(ScreenId.Game);
             pause.escPressed = false;
             pause.togglePause();
 
@@ -45,7 +45,7 @@ namespace RPG.Screen {
                 s.DoDraw = s.DoUpdate = false;
             }
 
-            Screen help = sm.getScreen("MMHelp");
+            Screen help = sm.getScreen(ScreenId.MainMenuHelp);
             help.DoDraw = help.DoUpdate = true;
         }
     }
@@ -55,7 +55,7 @@ namespace RPG.Screen {
             // Close all
             foreach (Screen s in sm.screens.Values) s.DoDraw = s.DoUpdate = false;
 
-            Screen mainMenu = sm.getScreen("Main Menu");
+            Screen mainMenu = sm.getScreen(ScreenId.MainMenu);
             mainMenu.DoUpdate = mainMenu.DoDraw = true;
         }
     }

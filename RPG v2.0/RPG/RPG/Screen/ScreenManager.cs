@@ -13,17 +13,17 @@ using RPG.GameObjects;
 
 namespace RPG.Screen
 {
-    /// <summary>
-    /// This is a game component that implements IUpdateable.
-    /// </summary>
+    public enum ScreenId { MainMenu, Game, Pause, MainMenuHelp };
+
     public class ScreenManager : Microsoft.Xna.Framework.Game
     {
 
         public static Random Rand = new Random();
         public static Texture2D WhiteRect;
         public static SpriteFont Font, Small_Font;
+        public static KeyboardState oldKBState;
 
-        public readonly Dictionary<String, Screen> screens;
+        public readonly Dictionary<ScreenId, Screen> screens;
         
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
@@ -35,22 +35,23 @@ namespace RPG.Screen
 
             TargetElapsedTime = new TimeSpan(0, 0, 0, 0, 40);
 
-            screens = new Dictionary<String, Screen>();
+            screens = new Dictionary<ScreenId, Screen>();
 
             // Set screen size
             graphics.PreferredBackBufferWidth = TileMap.SPRITE_WIDTH * 20;
             graphics.PreferredBackBufferHeight = TileMap.SPRITE_HEIGHT * 5;
         }
 
-        protected void addScreen(String uniqueId, Screen s, bool update = true, bool draw = true) {
+        protected void addScreen(ScreenId id, Screen s, bool update = true, bool draw = true) {
             s.DoUpdate = update;
             s.DoDraw = draw;
             s.LoadContent();
-            screens.Add(uniqueId, s);
+            screens.Add(id, s);
         }
 
         protected override void Initialize() {
             size = new Vector2(GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height);
+            oldKBState = Keyboard.GetState();
 
             base.Initialize();
         }
@@ -62,10 +63,10 @@ namespace RPG.Screen
             Font = Content.Load<SpriteFont>("Arial");
             Small_Font = Content.Load<SpriteFont>("Arial_Small");
 
-            addScreen("Main Menu", new MainMenuScreen(this), true, true);
-            addScreen("Game", new GameScreen(this), false, false);
-            addScreen("Pause", new PauseScreen(this), false, false);
-            addScreen("MMHelp", new MainMenuHelpScreen(this), false, false);
+            addScreen(ScreenId.MainMenu, new MainMenuScreen(this), true, true);
+            addScreen(ScreenId.Game, new GameScreen(this), false, false);
+            addScreen(ScreenId.Pause, new PauseScreen(this), false, false);
+            addScreen(ScreenId.MainMenuHelp, new MainMenuHelpScreen(this), false, false);
             
             WhiteRect = new Texture2D(graphics.GraphicsDevice, 1, 1);
             WhiteRect.SetData<Color>(new Color[] { Color.White });
@@ -83,7 +84,9 @@ namespace RPG.Screen
             foreach (Screen s in screens.Values)
                 if (s.DoUpdate)
                     s.Update(gameTime);
-
+            
+            oldKBState = Keyboard.GetState();
+            
             base.Update(gameTime);
 
             // Debug
@@ -108,7 +111,7 @@ namespace RPG.Screen
         public ContentManager getContent() { return Content; }
         public GraphicsDeviceManager getGraphics() { return graphics; }
         public SpriteBatch getSpriteBatch() { return spriteBatch; }
-        public Screen getScreen(String uniqueId) { return screens[uniqueId]; }
+        public Screen getScreen(ScreenId id) { return screens[id]; }
         public Vector2 getSize() { return size; }
     }
 }

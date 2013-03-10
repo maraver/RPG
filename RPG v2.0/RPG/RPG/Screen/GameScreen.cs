@@ -11,6 +11,7 @@ using Microsoft.Xna.Framework.Input;
 using RPG.Sprite;
 using RPG.GameObjects;
 using RPG.Helpers;
+using RPG.Entities;
 
 namespace RPG.Screen
 {
@@ -19,11 +20,16 @@ namespace RPG.Screen
     /// </summary>
     public class GameScreen : Screen
     {
+        public static int TRANSITION_MS = 500;
+
         // -------------------
         // Game Variables
         // -------------------
+        public Player GamePlayer;
         TileMap gameTileMap;
         int offsetX;
+
+        int transitionMs;
 
         // -------------------
         // Game Textures
@@ -42,17 +48,22 @@ namespace RPG.Screen
             sprEntities = new Dictionary<EntitySpriteId, EntitySprite>();
             sprEntities.Add(EntitySpriteId.Warrior, new EntitySprite(Content, "Warrior"));
             sprEntities.Add(EntitySpriteId.Warlock, new EntitySprite(Content, "Warlock"));
+            sprEntities.Add(EntitySpriteId.Wraith, new EntitySprite(Content, "Wraith"));
 
             sprAttacks = new Dictionary<AttackSpriteId, Texture2D>();
-            sprAttacks.Add(AttackSpriteId.FireBall, Content.Load<Texture2D>("Fireball/Fireball"));
+            sprAttacks.Add(AttackSpriteId.Fireball, Content.Load<Texture2D>("Fireball/Fireball"));
+            sprAttacks.Add(AttackSpriteId.Iceball, Content.Load<Texture2D>("Iceball/Iceball"));
+            sprAttacks.Add(AttackSpriteId.Scurge_Shot, Content.Load<Texture2D>("Scurge_Shot/Scurge_Shot"));
 
             sprTerrains = new Dictionary<TerrainSpriteId, Texture2D>();
             sprTerrains.Add(TerrainSpriteId.None, null);
             sprTerrains.Add(TerrainSpriteId.Stone_Wall, Content.Load<Texture2D>("Terrain/stone_wall"));
+            sprTerrains.Add(TerrainSpriteId.Door, Content.Load<Texture2D>("Terrain/door"));
 
             sprBackground = Content.Load<Texture2D>("Terrain/cave1_background");
 
-            gameTileMap = new TileMap(40, 5, MapType.Hall, this);
+            GamePlayer = new Player(0, 3 * TileMap.SPRITE_HEIGHT, SprEntity[EntitySpriteId.Warrior]);
+            gameTileMap = new TileMap(40, 5, GamePlayer, MapType.Hall, this);
         }
 
         public override void UnloadContent() {
@@ -61,6 +72,12 @@ namespace RPG.Screen
 
         public override void Update(GameTime gTime) {
             KeyboardState kb = Keyboard.GetState();
+
+            // Don't do anything while transitioning
+            if (transitionMs > 0) {
+                transitionMs -= gTime.ElapsedGameTime.Milliseconds;
+                return;
+            }
 
             // ### Movement input
             if (kb.IsKeyDown(Keys.D) && !kb.IsKeyDown(Keys.A))
@@ -77,7 +94,7 @@ namespace RPG.Screen
                 GamePlayer.doDuck(gameTileMap);
             else if (!kb.IsKeyDown(Keys.Space) && !kb.IsKeyDown(Keys.S) && kb.IsKeyDown(Keys.W))
                 GamePlayer.doBlock(gameTileMap);
-            else if (GamePlayer.getState() == EntityState.Ducking || GamePlayer.getState() == EntityState.Blocking)
+            else if (GamePlayer.State == EntityState.Ducking || GamePlayer.State == EntityState.Blocking)
                 GamePlayer.stand();
 
             if (kb.IsKeyDown(Keys.D1))
@@ -86,6 +103,18 @@ namespace RPG.Screen
                 GamePlayer.doAttack(gameTileMap, EntityPart.Body);
             else if (kb.IsKeyDown(Keys.D3))
                 GamePlayer.doAttack(gameTileMap, EntityPart.Legs);
+
+            // Interact with tile block
+            if (kb.IsKeyDown(Keys.Enter)) {
+                Rectangle rect = GamePlayer.Rect;
+                gameTileMap.getPixel(rect.Center.X, rect.Center.Y).interact(this);
+                /*
+                if (GamePlayer.isFacingForward())
+                    gameTileMap.getPixel(rect.Right - 2, rect.Center.Y).interact(this);
+                else
+                    gameTileMap.getPixel(rect.Left + 2, rect.Center.Y).interact(this);
+                 */
+            }
 
             // ### Update
             foreach (Attack a in Attacks)
@@ -97,7 +126,7 @@ namespace RPG.Screen
                 e.update(gameTileMap, gTime.ElapsedGameTime);            
 
             // ### Offset
-            offsetX = (int)GamePlayer.getLocation().X - ((int) getScreenManager().getSize().X / 2);
+            offsetX = (int)GamePlayer.Location.X - ((int) getScreenManager().getSize().X / 2);
 
             if (offsetX < 0) 
                 offsetX = 0;
@@ -109,12 +138,19 @@ namespace RPG.Screen
             return !attack.Alive;
         }
 
-        private void newRoom() {
+        public void newRoom() {
             GamePlayer.newMap();
-            gameTileMap = new TileMap(40, 5, MapType.Hall, this);
+            gameTileMap = new TileMap(40, 5, GamePlayer, MapType.Hall, this);
+            transitionMs = TRANSITION_MS;
         }
         
         public override void Draw(GameTime time) {
+            // While transitioning all black
+            if (transitionMs > 0) {
+                SpriteBatch.GraphicsDevice.Clear(Color.Black);
+                return;
+            }
+
             Vector2 background_resize = getScreenManager().getSize();
             int background_offsetX = offsetX % ((int) background_resize.X * 2);
 
@@ -125,8 +161,8 @@ namespace RPG.Screen
             SpriteBatch.Draw(sprBackground, new Rectangle(-background_offsetX, 0, (int) background_resize.X, (int) background_resize.Y), Color.White);
 
             // Draw each from tilemap
-            for (int w = 0; w < gameTileMap.getWidth(); w++)
-                for (int h = 0; h < gameTileMap.getHeight(); h++) {
+            for (int w = 0; w < gameTileMap.Width; w++)
+                for (int h = 0; h < gameTileMap.Height; h++) {
                     Texture2D texture = sprTerrains[gameTileMap.getSpriteId(w, h)];
                     if (texture != null)
                         SpriteBatch.Draw(texture, new Vector2(w * TileMap.SPRITE_WIDTH - offsetX, h * TileMap.SPRITE_HEIGHT), Color.White);
@@ -150,9 +186,9 @@ namespace RPG.Screen
                 e.Draw(SpriteBatch, offsetX, time.ElapsedGameTime);
         }
 
-        public Player GamePlayer { get { return gameTileMap.getPlayer(); } }
-        public List<Attack> Attacks { get { return gameTileMap.getAttacks(); } }
-        public List<Entity> Entities { get { return gameTileMap.getEntities(); } }
+        public List<Attack> Attacks { get { return gameTileMap.Attacks; } }
+        public List<Entity> Entities { get { return gameTileMap.Entities; } }
+        public int KilledEntities { get { return gameTileMap.killedEntities; } }
 
         public Dictionary<EntitySpriteId, EntitySprite> SprEntity { get { return sprEntities; } }
         public Dictionary<AttackSpriteId, Texture2D> SprAttack { get { return sprAttacks; } }

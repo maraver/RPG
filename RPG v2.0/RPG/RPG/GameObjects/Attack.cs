@@ -6,6 +6,8 @@ using System.Text;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework;
 
+using RPG.Entities;
+
 namespace RPG.GameObjects
 {
     public class Attack
@@ -81,15 +83,15 @@ namespace RPG.GameObjects
                     }
 
                     // Test collision with entites
-                    foreach (Entity e in map.getEntities()) {
+                    foreach (Entity e in map.Entities) {
                         if (!e.Alive) 
                             continue;
 
                         EntityPart ePart;
                         if (isFacingForward())
-                            ePart = e.getBounds().collide(collRect, new Point(collRect.Right, collRect.Center.Y));
+                            ePart = e.Bounds.collide(collRect, new Point(collRect.Right, collRect.Center.Y));
                         else
-                            ePart = e.getBounds().collide(collRect, new Point(collRect.Left, collRect.Center.Y));
+                            ePart = e.Bounds.collide(collRect, new Point(collRect.Left, collRect.Center.Y));
 
                         if (ePart != EntityPart.None) {
                             alive = false;
@@ -122,15 +124,13 @@ namespace RPG.GameObjects
         public bool Alive { get { return alive; } }
         public bool HasXP { get { return xp > 0; } }
 
-        public int XP { 
-            get {
-                if (xp > 0) {
-                    xp--;
-                    return 1;
-                } else {
-                    return 0;
-                }
-            } 
+        public int getXP() {
+            if (xp > 0) {
+                xp--;
+                return 1;
+            } else {
+                return 0;
+            }
         }
     }
 }

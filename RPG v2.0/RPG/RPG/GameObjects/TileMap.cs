@@ -8,6 +8,7 @@ using Microsoft.Xna.Framework.Graphics;
 
 using RPG.Screen;
 using RPG.Sprite;
+using RPG.Entities;
 
 namespace RPG.GameObjects
 {
@@ -16,27 +17,24 @@ namespace RPG.GameObjects
     public class TileMap {
         public static int SPRITE_WIDTH = 32, SPRITE_HEIGHT = 32;
 
-        public readonly GameScreen screen;
-        readonly int width, height;
+        public readonly GameScreen Screen;
+        public readonly int Width, Height;
         List<TileBlock> tileMap;
 
-        List<Entity> entities;
-        List<Attack> attacks;
-        
-        Player player;
+        public int killedEntities;
+        public List<Entity> Entities;
+        public List<Attack> Attacks;
 
-        public TileMap(int width, int height, MapType type, GameScreen screen) {
-            this.screen = screen;
-            this.width = width;
-            this.height = height;
+        public TileMap(int width, int height, Player player, MapType type, GameScreen screen) {
+            this.Screen = screen;
+            this.Width = width;
+            this.Height = height;
 
             // Init
+            killedEntities = 0;
             tileMap = new List<TileBlock>();
-            entities = new List<Entity>();
-            attacks = new List<Attack>();
-
-            // Content required objects
-            player = new Player(0 * SPRITE_WIDTH, getPixelHeight() - ( SPRITE_HEIGHT * 2), screen.SprEntity[EntitySpriteId.Warrior]);
+            Entities = new List<Entity>();
+            Attacks = new List<Attack>();
 
             // Init entities
             addEntity(player);
@@ -46,16 +44,24 @@ namespace RPG.GameObjects
                 default: // Hall Way
                     for (int w = 0; w < width; w++)
                         for (int h = 0; h < height; h++) {
-                            if (h == 0 || h == height - 1)
+                            if (h == height - 2 && w == width - 1)
+                                tileMap.Add(TileBlock.DOOR);
+                            else if (h == 0 || h == height - 1)
                                 tileMap.Add(TileBlock.STONE_WALL);
                             else if (w > 3 && h == height - 2 && ScreenManager.Rand.Next(20) == 0)
                                 tileMap.Add(TileBlock.STONE_WALL);
-                            else {
+                            else
+                            {
                                 tileMap.Add(TileBlock.NONE);
 
-                                if (h == height - 2 && ScreenManager.Rand.Next(10) < 1) {
-                                    Entity e = new Entity(w * SPRITE_WIDTH, h * SPRITE_WIDTH, screen.SprEntity[EntitySpriteId.Warlock]);
-                                    entities.Add(e);
+                                if (h == height - 2 && ScreenManager.Rand.Next(10) < 1)
+                                {
+                                    Entity e;
+                                    if (ScreenManager.Rand.Next(100) > 50)
+                                        e = EntityFactory.Wraith(w * SPRITE_WIDTH, h * SPRITE_HEIGHT, screen);
+                                    else
+                                        e = EntityFactory.Warlock(w * SPRITE_WIDTH, h * SPRITE_HEIGHT, screen);
+                                    Entities.Add(e);
                                 }
                             }
                         }
@@ -63,21 +69,25 @@ namespace RPG.GameObjects
             }
         }
 
+        public TileBlock getPixel(int x, int y) {
+            return get(shrinkX(x, false), shrinkY(y, false));
+        }
+
         public TileBlock get(int w, int h) {
-            if (w < 0 || h < 0 || w >= width || h >= height) {
+            if (w < 0 || h < 0 || w >= Width || h >= Height) {
                 Console.WriteLine("Tried to get a tile block out of range!");
                 Environment.Exit(1);
             }
 
-            return tileMap[h + w * getHeight()];
+            return tileMap[h + w * Height];
         }
 
         public TerrainSpriteId getSpriteId(int w, int h) {
             return get(w, h).getSpriteId();
         }
 
-        public int getPixelWidth() { return width *  SPRITE_WIDTH; }
-        public int getPixelHeight() { return height *  SPRITE_HEIGHT; }
+        public int getPixelWidth() { return Width *  SPRITE_WIDTH; }
+        public int getPixelHeight() { return Height *  SPRITE_HEIGHT; }
 
         public int shrinkX(int x, bool rUp) { 
             // return (int) Math.Round(x / (float)SPRITE_WIDTH);
@@ -100,7 +110,7 @@ namespace RPG.GameObjects
         }
 
         public Rectangle getRect(int w, int h) {
-            if (w < 0 || h < 0 || w >= width || h >= height) // Off screen, no collision
+            if (w < 0 || h < 0 || w >= Width || h >= Height) // Off screen, no collision
                 return new Rectangle(0, 0, 0, 0);
 
             Rectangle bounds = get(w, h).getBounds();
@@ -195,18 +205,11 @@ namespace RPG.GameObjects
         }
 
          public void addEntity(Entity e) {
-            entities.Add(e);
+            Entities.Add(e);
         }
 
         public void addAttack(Attack a) {
-            attacks.Add(a);
+            Attacks.Add(a);
         }
-
-        public int getWidth() { return width; }
-        public int getHeight() { return height; }
-
-        public List<Attack> getAttacks() { return attacks; }
-        public List<Entity> getEntities() { return entities; }
-        public Player getPlayer() { return player; }
     }
 }

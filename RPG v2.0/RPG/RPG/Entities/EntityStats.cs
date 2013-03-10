@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace RPG.GameObjects
+namespace RPG.Entities
 {
-    public class EntityStats
+    public struct EntityStats
     {
         int level;
         int hp, maxHp;

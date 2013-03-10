@@ -11,7 +11,6 @@ namespace RPG.Screen
 {
     public class MenuScreen : Screen
     {
-        KeyboardState oldState;
         int curSelection;
 
         List<MenuItem> menuItems;
@@ -21,7 +20,6 @@ namespace RPG.Screen
         public MenuScreen(ScreenManager screenManager, String[] items, MenuItemFunction[] funcs) : base(screenManager) {
             menuItems = new List<MenuItem>();
             curSelection = 0;
-            oldState = Keyboard.GetState();
           
             selectedItemExtraSize = ScreenManager.Font.MeasureString("[  ]");
 
@@ -38,19 +36,17 @@ namespace RPG.Screen
         public override void Update(GameTime gTime) {
             KeyboardState kb = Keyboard.GetState();
 
-            if (kb.IsKeyDown(Keys.Down) && oldState.IsKeyUp(Keys.Down)) {
+            if (kb.IsKeyDown(Keys.Down) && ScreenManager.oldKBState.IsKeyUp(Keys.Down)) {
                 curSelection++;
                 updateSelected();
-            } else if (kb.IsKeyDown(Keys.Up) && oldState.IsKeyUp(Keys.Up)) {
+            } else if (kb.IsKeyDown(Keys.Up) && ScreenManager.oldKBState.IsKeyUp(Keys.Up)) {
                 curSelection--;
                 updateSelected();
-            } 
-
-            if (kb.IsKeyDown(Keys.Enter) && oldState.IsKeyUp(Keys.Enter)) {
+            } else if (kb.IsKeyDown(Keys.Enter) && ScreenManager.oldKBState.IsKeyUp(Keys.Enter)) {
                 menuItems[curSelection].run(screenManager);
             }
 
-            oldState = kb;
+            ScreenManager.oldKBState = Keyboard.GetState();
         }
         
         protected void updateSelected() {

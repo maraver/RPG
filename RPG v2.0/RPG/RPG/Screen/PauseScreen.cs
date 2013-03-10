@@ -37,7 +37,7 @@ namespace RPG.Screen
 
                 // If paused draw this and not game
                 DoDraw = paused;
-                screenManager.getScreen("Game").DoUpdate = !paused;
+                screenManager.getScreen(ScreenId.Game).DoUpdate = !paused;
             }
 
             base.Update(gTime);
@@ -49,7 +49,7 @@ namespace RPG.Screen
             SpriteBatch.Begin(SpriteSortMode.BackToFront, BlendState.Additive); // Draw additive
 
             SpriteBatch.Draw(ScreenManager.WhiteRect, new Rectangle(0, 0,
-                getScreenManager().GraphicsDevice.Viewport.Width, getScreenManager().GraphicsDevice.Viewport.Height), new Color(.5f, .5f, .5f, .75f));
+                getScreenManager().GraphicsDevice.Viewport.Width, getScreenManager().GraphicsDevice.Viewport.Height), new Color(.2f, .2f, .2f, .8f));
 
             base.Draw(gTime); // Draw menu items
             SpriteBatch.End(); // End additive

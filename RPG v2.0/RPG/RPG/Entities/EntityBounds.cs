@@ -7,11 +7,11 @@ using Microsoft.Xna.Framework;
 
 using RPG.Helpers;
 
-namespace RPG.GameObjects
+namespace RPG.Entities
 {
     public enum EntityPart { Head, Body, Legs, None, Miss };
 
-    public class EntityBounds {
+    public struct EntityBounds {
         private static Rectangle ZERO_RECT = new Rectangle(0, 0, 0, 0);
 
         Rectangle rect, standRect;

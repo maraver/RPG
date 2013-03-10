@@ -7,9 +7,9 @@ using Microsoft.Xna.Framework.Content;
 
 namespace RPG.Sprite
 {
-    public enum EntitySpriteId { None, Warrior, Warlock };
-    public enum AttackSpriteId { None, FireBall };
-    public enum TerrainSpriteId { None, Stone_Wall };
+    public enum EntitySpriteId { None, Warrior, Warlock, Wraith };
+    public enum AttackSpriteId { None, Fireball, Iceball, Scurge_Shot };
+    public enum TerrainSpriteId { None, Stone_Wall, Door };
 
     public class Sprite
     {

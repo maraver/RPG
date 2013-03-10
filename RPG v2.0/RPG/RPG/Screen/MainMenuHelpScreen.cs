@@ -21,9 +21,11 @@ namespace RPG.Screen
             SpriteBatch.DrawString(ScreenManager.Font, "Go right => D", new Vector2(150, 63), Color.White);
             SpriteBatch.DrawString(ScreenManager.Font, "Block => W", new Vector2(164, 93), Color.White);
 
-            SpriteBatch.DrawString(ScreenManager.Font, "S <= Duck", new Vector2(380, 33), Color.White);
-            SpriteBatch.DrawString(ScreenManager.Font, "Space <= Jump", new Vector2(380, 63), Color.White);
-            SpriteBatch.DrawString(ScreenManager.Font, "1-3 <= Attack", new Vector2(380, 93), Color.White);
+            SpriteBatch.DrawString(ScreenManager.Font, "Enter == Interact", new Vector2(251, 123), Color.White);
+
+            SpriteBatch.DrawString(ScreenManager.Font, "S <= Duck", new Vector2(377, 33), Color.White);
+            SpriteBatch.DrawString(ScreenManager.Font, "Space <= Jump", new Vector2(377, 63), Color.White);
+            SpriteBatch.DrawString(ScreenManager.Font, "1-3 <= Attack", new Vector2(377, 93), Color.White);
 
             base.Draw(gTime);
         }

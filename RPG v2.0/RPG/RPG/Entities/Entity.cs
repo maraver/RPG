@@ -9,8 +9,9 @@ using Microsoft.Xna.Framework;
 using RPG.Sprite;
 using RPG.Screen;
 using RPG.Helpers;
+using RPG.GameObjects;
 
-namespace RPG.GameObjects
+namespace RPG.Entities
 {
     public enum EntityState { Standing, Jumping, Moving, Ducking, Blocking, Dying, Dead };
 
@@ -49,8 +50,11 @@ namespace RPG.GameObjects
         protected Vector2 msVel;
         protected EntitySprite sprite;
 
+        protected Func<Entity, TileMap, bool> ai;
 
-        public Entity(int x, int y, EntitySprite s) {
+
+        public Entity(int x, int y, EntitySprite s, Func<Entity, TileMap, bool> ai, int xp=6) {
+            this.ai = ai;
             bounds = new EntityBounds(x, y, (int) TileMap.SPRITE_WIDTH, 10, 14, 8, 24);
             state = EntityState.Standing;
             msVel = new Vector2(0, 0);
@@ -59,10 +63,10 @@ namespace RPG.GameObjects
             speedMultiplier = 1;
             isOnFloor = true;
 
-            XPValue = 6;
+            XPValue = xp;
 
             // Stats
-            stats = new EntityStats(30, 1);
+            stats = new EntityStats(50, 1);
 
             if (s != null)
                 this.sprite = s;
@@ -70,27 +74,10 @@ namespace RPG.GameObjects
                 System.Console.WriteLine("Init Entity with null sprite!");
                 Environment.Exit(1);
             }
-
         }
 
-        public virtual void runAI(TileMap map) {
-            // Basic random AI
-            int r = ScreenManager.Rand.Next(500);
-
-            if (r < 10) {
-                setXSpeedPerMs(SPEED_PER_MS);
-            } else if (r < 30) {
-                setXSpeedPerMs(msVel.X * -1f);
-            } else if (r < 50) {
-                setXSpeedPerMs((float) Direction.Stopped);
-                attack(map, EntityPart.Body);
-            } else if (r < 55) {
-                jump(map);
-            } else if (r < 60) {
-                duck(map);
-            } else if (r < 65) {
-                block(map);
-            }
+        protected virtual void runAI(TileMap map) {
+            EntityAIs.Basic(this, map);
         }
 
         public void update(TileMap map, TimeSpan elapsed) {
@@ -110,14 +97,19 @@ namespace RPG.GameObjects
                     die(map);
                 else if (!isOnFloor)
                     bounds.moveY(2);
-                else
+                else {
                     setState(EntityState.Dead);
+                    map.killedEntities++;
+                }
 
                 return;
             }
 
             // ### Run the entities customizable AI
-            runAI(map);
+            if (ai != null)
+                ai(this, map);
+            else
+                runAI(map);
 
             // ### Update movement state based on movement
             if (getRealXSpeed() != 0 && state != EntityState.Jumping) {
@@ -132,7 +124,7 @@ namespace RPG.GameObjects
 
             int currXSpeed = (int) (getRealXSpeed() * speedMultiplier);
             if (attackDelay > ATTACK_DELAY_MS * 0.5f && speedMultiplier > 0.25f) // If attacked recently while jumping, move slower
-                speedMultiplier *= 0.95f;
+                speedMultiplier *= 0.93f;
             else if (speedMultiplier < 1)
                 speedMultiplier += 0.033f;
             else
@@ -198,11 +190,11 @@ namespace RPG.GameObjects
             }
         }
 
-        protected void setXSpeedPerMs(float speedPerMs) {
+        public void setXSpeedPerMs(float speedPerMs) {
             msVel.X = speedPerMs;
         }
 
-        protected void jump(TileMap map) {
+        public void jump(TileMap map) {
             if (jumpDelay <= 0 && isOnFloor) {
                 msVel.Y = JUMP_PER_MS;
                 setState(EntityState.Jumping);
@@ -215,9 +207,9 @@ namespace RPG.GameObjects
             setState(EntityState.Standing);
         }
 
-        protected Attack attack(TileMap map, EntityPart part) {
+        public Attack attack(TileMap map, EntityPart part, Func<Entity, EntityPart, TileMap, Attack> factoryFunc) {
             if (attackDelay <= 0 && canAttack()) {
-                Attack a = AttackFactory.FireBall(this, part, map);
+                Attack a = factoryFunc(this, part, map);
                 map.addAttack(a);
                 attackDelay = ATTACK_DELAY_MS;
                 return a;
@@ -240,14 +232,14 @@ namespace RPG.GameObjects
                 stats.hurt((int) (dmg * 1.12f));
         }
 
-        protected void duck(TileMap map) {
+        public void duck(TileMap map) {
             if (isOnFloor) {
                 setState(EntityState.Ducking);
                 bounds.duck(); // Resets position
             }
         }
 
-        protected void block(TileMap map) {
+        public void block(TileMap map) {
             if (isOnFloor) {
                 setState(EntityState.Blocking);
                 bounds.block(facing); // Resets position
@@ -296,7 +288,7 @@ namespace RPG.GameObjects
         }
 
         public virtual void Draw(SpriteBatch spriteBatch, int offsetX, TimeSpan elapsed) {
-            Rectangle pRect = getRect();
+            Rectangle pRect = Rect;
             pRect.X -= offsetX;
             Texture2D sprite = getSprite(elapsed.Milliseconds);
             if (isFacingForward())
@@ -306,7 +298,7 @@ namespace RPG.GameObjects
 
             // Was hit resently, show hp bar
             if (Alive && showHpTicks != 0) {
-                Rectangle hpRect = getRect();
+                Rectangle hpRect = Rect;
                 hpRect.X -= offsetX + (int) (hpRect.Width * 0.125); // Offset and a bit over from the absolute left side
                 hpRect.Y -= 7;
                 hpRect.Height = 3;
@@ -325,13 +317,15 @@ namespace RPG.GameObjects
         
         protected float getRealXSpeed() { return msVel.X * (tElapsed.Milliseconds); }
         protected float getRealYSpeed() { return msVel.Y * (tElapsed.Milliseconds); }
-        public float AttackPower { get { return stats.AttackPower; } }
         public bool Alive { get { return stats.Hp > 0; } }
+        public EntityStats Stats { get { return stats; } }
+        public EntityState State { get { return state; } }
+        public EntityBounds Bounds { get { return bounds; } }
+        public Point Location { get { return bounds.Location; } }
+        public Rectangle Rect { get { return bounds.Rect; } }
 
-        public Point getLocation() { return bounds.Location; }
-        public Rectangle getRect() { return bounds.Rect; }
-        public EntityBounds getBounds() { return bounds; }
+        public float getSpeedX() { return msVel.X; }
+        public float getSpeedY() { return msVel.Y; }
         public bool isFacingForward() { return facing != Direction.Left; }
-        public EntityState getState() { return state; }
     }
 }

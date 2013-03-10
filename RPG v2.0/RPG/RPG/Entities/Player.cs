@@ -9,23 +9,24 @@ using Microsoft.Xna.Framework;
 using RPG.Sprite;
 using RPG.Screen;
 using RPG.Helpers;
+using RPG.GameObjects;
 
-namespace RPG.GameObjects
+namespace RPG.Entities
 {
    public class Player : Entity
     {
-        int XP_TO_LVL = 100;
+        int XP_TO_LVL = 50;
         int xp;
         List<Attack> myAttacks;
         
-        public Player(int x, int y, EntitySprite s) : base(x, y, s) {
+        public Player(int x, int y, EntitySprite s) : base(x, y, s, null) {
             xp = 0;
             myAttacks = new List<Attack>();
         }
 
-        public override void runAI(TileMap map) {
+        protected override void runAI(TileMap map) {
             foreach (Attack a in myAttacks)
-                xp += a.XP;
+                xp += a.getXP();
 
             // Level up
             if (xp > XP_TO_LVL) {
@@ -38,10 +39,7 @@ namespace RPG.GameObjects
         }
 
         private static bool AttackXpAdded(Attack a) {
-            if (!a.Alive && !a.HasXP) {
-                return true;
-            } else
-                return false;
+            return (!a.Alive && !a.HasXP);
         }
 
         public override void Draw(SpriteBatch spriteBatch, int offsetX, TimeSpan elapsed) {
@@ -54,7 +52,7 @@ namespace RPG.GameObjects
             spriteBatch.DrawString(ScreenManager.Small_Font, "Lvl " + stats.Level, new Vector2(105, 0), Color.White);
 
             // Draw entity
-            Rectangle pRect = getRect();
+            Rectangle pRect = Rect;
             pRect.X -= offsetX;
             Texture2D sprite = getSprite(elapsed.Milliseconds);
             if (isFacingForward()) {
@@ -65,7 +63,7 @@ namespace RPG.GameObjects
            
             // Draw xp bar
             Rectangle xpBar = new Rectangle(0, spriteBatch.GraphicsDevice.Viewport.Height - 3,
-                (int) (xp / (float)XP_TO_LVL * spriteBatch.GraphicsDevice.Viewport.Width), 3);
+                (int) (xp / (float)XP_TO_LVL * spriteBatch.GraphicsDevice.Viewport.Width), 2);
             spriteBatch.Draw(ScreenManager.WhiteRect, xpBar, Color.LightBlue);
 
             // Draw hit box
@@ -81,12 +79,12 @@ namespace RPG.GameObjects
 
         public void newMap() {
             bounds.moveX(-bounds.X);
-            bounds.moveY(3-bounds.Y);
+            bounds.moveY(-bounds.Y + TileMap.SPRITE_HEIGHT * 3);
         }
 
         public void doAttack(TileMap map, EntityPart part) {
             if (Alive) {
-                Attack attack = base.attack(map, part);
+                Attack attack = base.attack(map, part, AttackFactory.FireBall);
                 if (attack != null) {
                     myAttacks.Add(attack);
                 }
